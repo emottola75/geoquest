@@ -1,0 +1,1575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GeoQuest — World Geography Challenge - E. Mottola, 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;800&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Source+Code+Pro:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css"/>
+<style>
+  :root {
+    --bg:        #080e1a;
+    --surface:   #0f1b2d;
+    --surface2:  #162234;
+    --surface3:  #1d2d42;
+    --border:    #2c4260;
+    --gold:      #c9963b;
+    --gold-l:    #e8b85a;
+    --gold-dim:  #6b4e1a;
+    --text:      #ddd3bc;
+    --text-dim:  #6a7e96;
+    --water:     #0d1e35;
+    --land:      #1e3248;
+    --land-hov:  #2e4a6a;
+    --land-dim:  #141f30;
+    --correct:   #3aaa60;
+    --wrong:     #cc4444;
+    --rad:       8px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Crimson Text', Georgia, serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    user-select: none;
+  }
+
+  /* ═══ BACKGROUND GRID ═══ */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(201,150,59,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(201,150,59,.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ═══ SCREENS ═══ */
+  .screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    z-index: 1;
+    padding: 32px 20px 40px;
+    position: relative;
+  }
+  .screen.active { display: flex; }
+
+  /* ═══ INTRO SCREEN ═══ */
+  #intro-screen {
+    gap: 14px;
+    justify-content: flex-start;
+    padding-top: 24px;
+  }
+  @media (max-height: 700px) {
+    #intro-screen { gap: 10px; padding-top: 16px; }
+    .logo h1 { font-size: 2rem; }
+    .logo p  { display: none; }
+    .card    { padding: 14px 18px; }
+    .options-row { padding: 8px 14px; }
+  }
+
+  .logo {
+    text-align: center;
+    margin-bottom: 0;
+  }
+  .logo h1 {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(2.4rem, 6vw, 4rem);
+    font-weight: 800;
+    letter-spacing: .12em;
+    background: linear-gradient(135deg, var(--gold-l), var(--gold), #a87830);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+    line-height: 1.1;
+  }
+  .logo p {
+    font-family: 'Source Code Pro', monospace;
+    font-size: .72rem;
+    letter-spacing: .35em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--rad);
+    padding: 24px 28px;
+    width: 100%;
+    max-width: 520px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+
+  .card h2 {
+    font-family: 'Cinzel', serif;
+    font-size: .75rem;
+    letter-spacing: .3em;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  /* Region selector */
+  .region-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .region-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--rad);
+    padding: 8px 4px;
+    cursor: pointer;
+    text-align: center;
+    transition: all .18s;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .region-btn:hover { border-color: var(--gold); background: var(--surface3); transform: translateY(-1px); }
+  .region-btn.selected { border-color: var(--gold); background: var(--surface3); box-shadow: 0 0 14px rgba(201,150,59,.25); }
+  .region-btn .icon { font-size: 1.5rem; }
+  .region-btn span { font-family: 'Cinzel', serif; font-size: .62rem; letter-spacing: .1em; color: var(--text-dim); }
+  .region-btn.selected span { color: var(--gold-l); }
+
+  /* Player selector */
+  .player-count-row {
+    display: flex; gap: 10px;
+  }
+  .player-count-btn {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--rad);
+    padding: 10px;
+    cursor: pointer;
+    font-family: 'Cinzel', serif;
+    font-size: .85rem;
+    color: var(--text-dim);
+    text-align: center;
+    transition: all .18s;
+  }
+  .player-count-btn:hover { border-color: var(--gold); color: var(--text); }
+  .player-count-btn.selected { border-color: var(--gold); background: var(--surface3); color: var(--gold-l); }
+
+  /* Player name inputs */
+  #player-names-wrap { display: flex; flex-direction: column; gap: 10px; }
+  .player-name-input {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .player-name-input label {
+    font-family: 'Source Code Pro', monospace;
+    font-size: .75rem;
+    color: var(--gold);
+    width: 60px;
+    flex-shrink: 0;
+  }
+  .player-name-input input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-family: 'Crimson Text', serif;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color .18s;
+  }
+  .player-name-input input:focus { border-color: var(--gold); }
+
+  /* Start button */
+  .btn-primary {
+    width: 100%;
+    max-width: 520px;
+    padding: 14px 24px;
+    background: linear-gradient(135deg, #a87830, var(--gold), #c9963b);
+    border: none;
+    border-radius: var(--rad);
+    font-family: 'Cinzel', serif;
+    font-size: .9rem;
+    font-weight: 600;
+    letter-spacing: .2em;
+    color: #0a0f1a;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all .2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-primary::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,.15) 50%, transparent 100%);
+    transform: translateX(-100%);
+    transition: transform .5s;
+  }
+  .btn-primary:hover::after { transform: translateX(100%); }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(201,150,59,.35); }
+  .btn-primary:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+  /* ═══ GAME SCREEN ═══ */
+  #game-screen {
+    position: fixed; inset: 0;
+    flex-direction: row;
+    padding: 0;
+    min-height: unset;
+    height: 100vh;
+    align-items: stretch;
+    justify-content: stretch;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  /* Sidebar */
+  #sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 20px 16px;
+    gap: 16px;
+    z-index: 10;
+  }
+
+  #sidebar .s-title {
+    font-family: 'Cinzel', serif;
+    font-size: .62rem;
+    letter-spacing: .35em;
+    color: var(--gold);
+    text-transform: uppercase;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Flag card */
+  #flag-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--rad);
+    padding: 14px 12px;
+    text-align: center;
+    transition: all .3s;
+    position: relative;
+    overflow: hidden;
+  }
+  #flag-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+  #flag-display {
+    min-height: 64px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #flag-display .fi {
+    width: 80px !important;
+    line-height: 60px;
+    border-radius: 6px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.5);
+    animation: flagPop .3s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  @keyframes flagPop {
+    from { transform: scale(.5); opacity: 0; }
+    to   { transform: scale(1);  opacity: 1; }
+  }
+  .state-flag {
+    width: 88px; height: auto; max-height: 60px;
+    border-radius: 6px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.5);
+    animation: flagPop .3s cubic-bezier(.34,1.56,.64,1) both;
+    object-fit: contain;
+  }
+  .state-badge-fallback {
+    width: 88px; height: 60px; border-radius: 8px;
+    background: linear-gradient(135deg,#1a3050,#243d60);
+    border: 2px solid var(--border);
+    align-items: center; justify-content: center;
+    font-family: 'Cinzel', serif; font-size: 1.6rem; font-weight: 800;
+    color: var(--gold-l); letter-spacing: .06em;
+    animation: flagPop .3s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  #country-name {
+    font-family: 'Cinzel', serif;
+    font-size: .92rem;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: .04em;
+    margin: 8px 0 4px;
+    min-height: 1.2em;
+    line-height: 1.25;
+  }
+  .flag-label {
+    font-family: 'Source Code Pro', monospace;
+    font-size: .58rem;
+    letter-spacing: .2em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  /* Player panels */
+  .player-panel {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--rad);
+    padding: 10px 12px;
+    transition: all .2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .player-panel.active-player {
+    border-color: var(--gold);
+    box-shadow: 0 0 12px rgba(201,150,59,.2);
+  }
+  .player-panel.active-player::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+  .player-panel.eliminated { opacity: .4; }
+  .p-name {
+    font-family: 'Cinzel', serif;
+    font-size: .78rem;
+    letter-spacing: .06em;
+    color: var(--text);
+    margin-bottom: 6px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .p-name .score {
+    font-family: 'Source Code Pro', monospace;
+    font-size: .7rem;
+    color: var(--gold);
+  }
+  .p-lives {
+    display: flex; gap: 4px;
+  }
+  .heart { font-size: .9rem; transition: transform .3s; }
+  .heart.lost { filter: grayscale(1) opacity(.3); transform: scale(.8); }
+
+  /* Current turn indicator */
+  #turn-label {
+    font-family: 'Cinzel', serif;
+    font-size: .68rem;
+    letter-spacing: .15em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    text-align: center;
+  }
+  #turn-name {
+    font-family: 'Cinzel', serif;
+    font-size: .9rem;
+    color: var(--gold-l);
+    text-align: center;
+    font-weight: 600;
+  }
+
+  /* Quit button */
+  #quit-btn {
+    margin-top: auto;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--rad);
+    padding: 8px;
+    font-family: 'Source Code Pro', monospace;
+    font-size: .62rem;
+    letter-spacing: .2em;
+    color: var(--text-dim);
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all .18s;
+  }
+  #quit-btn:hover { border-color: var(--wrong); color: var(--wrong); }
+
+  /* Map area */
+  #map-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: var(--water);
+  }
+
+  #map-wrap svg {
+    width: 100%; height: 100%;
+    display: block;
+  }
+
+  /* SVG country styles */
+  .country {
+    fill: var(--land);
+    stroke: var(--bg);
+    stroke-width: .5px;
+    cursor: pointer;
+    transition: fill .15s;
+  }
+  .country:hover { fill: var(--land-hov); }
+  .country.region-out { fill: var(--land-dim); cursor: default; pointer-events: none; }
+  .country.correct-flash { fill: var(--correct); }
+  .country.wrong-flash  { fill: var(--wrong); }
+
+  .state {
+    fill: var(--land);
+    stroke: var(--bg);
+    stroke-width: .6px;
+    cursor: pointer;
+    transition: fill .15s;
+  }
+  .state:hover { fill: var(--land-hov); }
+  .state.correct-flash { fill: var(--correct); }
+  .state.wrong-flash  { fill: var(--wrong); }
+
+  /* Feedback overlay */
+  #feedback-overlay {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+    z-index: 20;
+  }
+  #feedback-msg {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    opacity: 0;
+    transform: scale(.6);
+    transition: all .15s;
+    text-shadow: 0 2px 20px rgba(0,0,0,.8);
+  }
+  #feedback-msg.show { opacity: 1; transform: scale(1); }
+  #feedback-msg.correct { color: var(--correct); }
+  #feedback-msg.wrong   { color: var(--wrong); }
+
+  /* Correct answer label */
+  #answer-label {
+    position: absolute;
+    bottom: 52px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(8,14,26,.9);
+    border: 1px solid var(--border);
+    border-radius: 30px;
+    padding: 8px 20px;
+    font-family: 'Cinzel', serif;
+    font-size: .85rem;
+    letter-spacing: .08em;
+    color: var(--text);
+    opacity: 0;
+    transition: opacity .3s;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 21;
+  }
+  #answer-label.show { opacity: 1; }
+
+  /* Top bar */
+  #top-bar {
+    position: absolute; top: 0; left: 0; right: 0;
+    background: linear-gradient(var(--surface), transparent);
+    padding: 12px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    pointer-events: none;
+    z-index: 15;
+  }
+  #region-badge {
+    font-family: 'Source Code Pro', monospace;
+    font-size: .65rem;
+    letter-spacing: .3em;
+    color: var(--gold);
+    text-transform: uppercase;
+    background: rgba(15,27,45,.8);
+    border: 1px solid var(--gold-dim);
+    border-radius: 20px;
+    padding: 4px 12px;
+  }
+  #round-counter {
+    font-family: 'Source Code Pro', monospace;
+    font-size: .65rem;
+    letter-spacing: .2em;
+    color: var(--text-dim);
+    background: rgba(15,27,45,.8);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px;
+  }
+
+  /* ═══ RESULTS SCREEN ═══ */
+  #results-screen {
+    gap: 20px;
+    justify-content: flex-start;
+    padding-top: 40px;
+  }
+
+  .results-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--rad);
+    padding: 28px;
+    width: 100%;
+    max-width: 480px;
+    position: relative;
+    overflow: hidden;
+  }
+  .results-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+  .results-title {
+    font-family: 'Cinzel', serif;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--gold-l);
+    text-align: center;
+    margin-bottom: 6px;
+    letter-spacing: .1em;
+  }
+  .results-subtitle {
+    font-family: 'Source Code Pro', monospace;
+    font-size: .62rem;
+    letter-spacing: .3em;
+    color: var(--text-dim);
+    text-align: center;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+  .result-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+  }
+  .result-row.winner { border-color: var(--gold); background: var(--surface3); }
+  .result-rank {
+    font-family: 'Cinzel', serif;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--text-dim);
+    width: 28px;
+    text-align: center;
+  }
+  .result-row.winner .result-rank { color: var(--gold-l); }
+  .result-name { flex: 1; font-family: 'Cinzel', serif; font-size: .9rem; }
+  .result-score {
+    font-family: 'Source Code Pro', monospace;
+    font-size: .85rem;
+    color: var(--gold);
+  }
+  .result-lives { font-size: .9rem; }
+
+  /* Zoom controls */
+  #zoom-controls {
+    position: absolute;
+    bottom: 20px; right: 16px;
+    display: flex; flex-direction: column; gap: 6px;
+    z-index: 15;
+  }
+  .zoom-btn {
+    width: 34px; height: 34px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+    line-height: 1;
+  }
+  .zoom-btn:hover { border-color: var(--gold); color: var(--gold); background: var(--surface2); }
+  .zoom-hint {
+    position: absolute;
+    bottom: 20px; left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Source Code Pro', monospace;
+    font-size: .55rem;
+    letter-spacing: .2em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    opacity: .6;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* Timer */
+  #timer-wrap {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  #timer-ring {
+    position: relative; width: 52px; height: 52px;
+  }
+  #timer-ring svg { transform: rotate(-90deg); }
+  #timer-ring circle.bg { fill: none; stroke: var(--surface3); stroke-width: 4; }
+  #timer-ring circle.progress {
+    fill: none; stroke: var(--gold); stroke-width: 4;
+    stroke-linecap: round;
+    stroke-dasharray: 138.2;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 1s linear, stroke .5s;
+  }
+  #timer-ring circle.progress.warning { stroke: #e07030; }
+  #timer-ring circle.progress.danger  { stroke: var(--wrong); }
+  #timer-number {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Source Code Pro', monospace;
+    font-size: 1rem; font-weight: 600; color: var(--gold);
+    transition: color .5s;
+  }
+  #timer-number.warning { color: #e07030; }
+  #timer-number.danger  { color: var(--wrong); }
+
+  /* Pro mode toggle */
+  #pro-mode-wrap {
+    display: flex; align-items: center; gap: 8px; justify-content: center;
+  }
+  #pro-mode-wrap span {
+    font-family: 'Source Code Pro', monospace;
+    font-size: .6rem; letter-spacing: .2em; color: var(--text-dim);
+    text-transform: uppercase; cursor: pointer; transition: color .2s;
+    user-select: none;
+  }
+  #pro-mode-wrap span.active { color: var(--gold); }
+  .toggle {
+    position: relative; width: 34px; height: 18px; cursor: pointer; flex-shrink: 0;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+  .toggle-track {
+    position: absolute; inset: 0;
+    background: var(--surface3); border: 1px solid var(--border);
+    border-radius: 9px; transition: background .2s, border-color .2s;
+  }
+  .toggle input:checked + .toggle-track { background: var(--gold-dim); border-color: var(--gold); }
+  .toggle-thumb {
+    position: absolute; top: 2px; left: 2px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--text-dim); transition: transform .2s, background .2s;
+    pointer-events: none;
+  }
+  .toggle input:checked ~ .toggle-thumb { transform: translateX(16px); background: var(--gold-l); }
+
+  /* Intro options row */
+  .options-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--rad);
+    width: 100%; max-width: 520px;
+  }
+  .options-row-label {
+    font-family: 'Cinzel', serif;
+    font-size: .75rem; letter-spacing: .1em; color: var(--text);
+  }
+  .options-row-sub {
+    font-family: 'Source Code Pro', monospace;
+    font-size: .6rem; letter-spacing: .15em; color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  /* Timer option pills */
+  .duration-pills {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px;
+  }
+  .dur-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-family: 'Source Code Pro', monospace;
+    font-size: .72rem; letter-spacing: .08em;
+    color: var(--text-dim); cursor: pointer;
+    transition: all .15s;
+  }
+  .dur-btn:hover { border-color: var(--gold); color: var(--text); }
+  .dur-btn.selected { border-color: var(--gold); background: var(--surface3); color: var(--gold-l); }
+  #dur-options { transition: opacity .2s, max-height .2s; overflow: hidden; max-height: 60px; }
+  #dur-options.hidden { opacity: 0; max-height: 0; pointer-events: none; }
+
+  /* Get-ready dialog overlay */
+  #ready-overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(4,8,16,.82);
+    display: none; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  #ready-overlay.show { display: flex; }
+  #ready-dialog {
+    background: var(--surface);
+    border: 1px solid var(--gold);
+    border-radius: 12px;
+    padding: 36px 44px;
+    text-align: center;
+    position: relative;
+    max-width: 360px; width: 90%;
+    animation: dialogIn .25s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  @keyframes dialogIn {
+    from { transform: scale(.7); opacity: 0; }
+    to   { transform: scale(1);  opacity: 1; }
+  }
+  #ready-dialog::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    border-radius: 12px 12px 0 0;
+  }
+  #ready-player-name {
+    font-family: 'Cinzel', serif;
+    font-size: 1.5rem; font-weight: 800;
+    color: var(--gold-l);
+    margin-bottom: 6px;
+    letter-spacing: .06em;
+  }
+  #ready-subtitle {
+    font-family: 'Source Code Pro', monospace;
+    font-size: .65rem; letter-spacing: .3em;
+    color: var(--text-dim); text-transform: uppercase;
+    margin-bottom: 28px;
+  }
+  #ready-ok {
+    background: linear-gradient(135deg, #a87830, var(--gold));
+    border: none; border-radius: 8px;
+    padding: 12px 36px;
+    font-family: 'Cinzel', serif; font-size: .85rem;
+    font-weight: 600; letter-spacing: .15em;
+    color: #0a0f1a; cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+  }
+  #ready-ok:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(201,150,59,.4); }
+
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ INTRO SCREEN ═══════════════ -->
+<div id="intro-screen" class="screen active">
+
+  <div class="logo">
+    <h1>GeoQuest</h1>
+    <p>World Geography Challenge - E. Mottola, 2026</p>
+  </div>
+
+  <div class="card">
+    <h2>Select Region</h2>
+    <div class="region-grid">
+      <button class="region-btn" data-region="eu" onclick="selectRegion(this)">
+        <span class="icon">🌍</span><span>Europe</span>
+      </button>
+      <button class="region-btn" data-region="africa" onclick="selectRegion(this)">
+        <span class="icon">🌍</span><span>Africa</span>
+      </button>
+      <button class="region-btn" data-region="me" onclick="selectRegion(this)">
+        <span class="icon">🕌</span><span>Middle East</span>
+      </button>
+      <button class="region-btn" data-region="asia" onclick="selectRegion(this)">
+        <span class="icon">🌏</span><span>Asia</span>
+      </button>
+      <button class="region-btn" data-region="latam" onclick="selectRegion(this)">
+        <span class="icon">🌿</span><span>Lat. America</span>
+      </button>
+      <button class="region-btn" data-region="us" onclick="selectRegion(this)">
+        <span class="icon">🌎</span><span>US States</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Number of Players</h2>
+    <div class="player-count-row">
+      <button class="player-count-btn selected" data-count="1" onclick="selectPlayerCount(this)">Solo</button>
+      <button class="player-count-btn" data-count="2" onclick="selectPlayerCount(this)">2 Players</button>
+      <button class="player-count-btn" data-count="3" onclick="selectPlayerCount(this)">3 Players</button>
+    </div>
+  </div>
+
+  <div class="card" id="names-card">
+    <h2>Player Names</h2>
+    <div id="player-names-wrap">
+      <div class="player-name-input">
+        <label>P1 ›</label>
+        <input type="text" id="name-p1" placeholder="Explorer" maxlength="16" value="Explorer">
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="max-width:520px;width:100%">
+    <h2>Timer</h2>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <span style="font-family:'Crimson Text',serif;font-size:1rem;color:var(--text)">Enable countdown timer</span>
+      <label class="toggle">
+        <input type="checkbox" id="timer-toggle-intro" onchange="onTimerToggle(this.checked)" checked>
+        <div class="toggle-track"></div>
+        <div class="toggle-thumb"></div>
+      </label>
+    </div>
+    <div id="dur-options">
+      <div style="font-family:'Source Code Pro',monospace;font-size:.6rem;letter-spacing:.2em;color:var(--text-dim);text-transform:uppercase;margin-bottom:6px">Duration per question</div>
+      <div class="duration-pills">
+        <button class="dur-btn" data-secs="10" onclick="selectDuration(this)">10 s</button>
+        <button class="dur-btn selected" data-secs="15" onclick="selectDuration(this)">15 s</button>
+        <button class="dur-btn" data-secs="30" onclick="selectDuration(this)">30 s</button>
+        <button class="dur-btn" data-secs="60" onclick="selectDuration(this)">60 s</button>
+        <button class="dur-btn" data-secs="90" onclick="selectDuration(this)">90 s</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="options-row">
+    <div>
+      <div class="options-row-label">⚡ Pro Mode</div>
+      <div class="options-row-sub">Flag only — no country name shown</div>
+    </div>
+    <label class="toggle">
+      <input type="checkbox" id="pro-toggle-intro" onchange="proMode = this.checked">
+      <div class="toggle-track"></div>
+      <div class="toggle-thumb"></div>
+    </label>
+  </div>
+
+  <button class="btn-primary" id="start-btn" onclick="startGame()" disabled>
+    Begin Expedition →
+  </button>
+
+</div>
+
+<!-- ═══════════════ GAME SCREEN ═══════════════ -->
+<div id="game-screen" class="screen">
+
+  <div id="sidebar">
+    <div class="s-title">Mission</div>
+
+    <div id="flag-card">
+      <div id="flag-display">🏴</div>
+      <div id="country-name"></div>
+      <div class="flag-label">Find on the map</div>
+    </div>
+
+    <div id="timer-wrap">
+      <div id="timer-ring">
+        <svg width="52" height="52" viewBox="0 0 52 52">
+          <circle class="bg" cx="26" cy="26" r="22"/>
+          <circle class="progress" id="timer-arc" cx="26" cy="26" r="22"/>
+        </svg>
+        <div id="timer-number">15</div>
+      </div>
+    </div>
+
+    <div class="s-title">Explorers</div>
+    <div id="players-panel"></div>
+
+    <div id="turn-info">
+      <div id="turn-label">Current Turn</div>
+      <div id="turn-name">—</div>
+    </div>
+
+    <button id="quit-btn" onclick="goToResults()">✕ End Game</button>
+  </div>
+
+  <div id="map-wrap">
+    <div id="top-bar">
+      <div id="region-badge">EUROPE</div>
+      <div id="round-counter">Round 1 / ?</div>
+    </div>
+    <svg id="map-svg"></svg>
+    <div id="zoom-controls">
+      <button class="zoom-btn" onclick="zoomIn()" title="Zoom in">＋</button>
+      <button class="zoom-btn" onclick="zoomOut()" title="Zoom out">－</button>
+      <button class="zoom-btn" onclick="zoomReset()" title="Reset view" style="font-size:.7rem;letter-spacing:0">⌂</button>
+    </div>
+    <div class="zoom-hint">scroll or pinch to zoom · drag to pan</div>
+    <div id="feedback-overlay">
+      <div id="feedback-msg"></div>
+    </div>
+    <div id="answer-label"></div>
+  </div>
+
+</div>
+
+<!-- ═══════════════ RESULTS SCREEN ═══════════════ -->
+<div id="results-screen" class="screen">
+  <div class="logo"><h1>GeoQuest</h1></div>
+  <div class="results-card">
+    <div class="results-title">Expedition Complete</div>
+    <div class="results-subtitle">Final Rankings</div>
+    <div id="results-list"></div>
+  </div>
+  <button class="btn-primary" onclick="goToIntro()" style="max-width:340px">
+    ← New Expedition
+  </button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson@3/dist/topojson.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════
+//  COUNTRY / STATE DATA
+// ═══════════════════════════════════════════════════════
+
+// World countries: [numericId, name, alpha2]
+const WORLD_COUNTRIES = [
+  // EUROPE
+  [276,"Germany","DE","eu"],[250,"France","FR","eu"],[380,"Italy","IT","eu"],
+  [724,"Spain","ES","eu"],[620,"Portugal","PT","eu"],[528,"Netherlands","NL","eu"],
+  [56,"Belgium","BE","eu"],[442,"Luxembourg","LU","eu"],[372,"Ireland","IE","eu"],
+  [208,"Denmark","DK","eu"],[752,"Sweden","SE","eu"],[578,"Norway","NO","eu"],
+  [246,"Finland","FI","eu"],[756,"Switzerland","CH","eu"],[40,"Austria","AT","eu"],
+  [616,"Poland","PL","eu"],[203,"Czechia","CZ","eu"],[703,"Slovakia","SK","eu"],
+  [348,"Hungary","HU","eu"],[642,"Romania","RO","eu"],[100,"Bulgaria","BG","eu"],
+  [300,"Greece","GR","eu"],[191,"Croatia","HR","eu"],[705,"Slovenia","SI","eu"],
+  [688,"Serbia","RS","eu"],[70,"Bosnia & Herz.","BA","eu"],[499,"Montenegro","ME","eu"],
+  [8,"Albania","AL","eu"],[807,"N. Macedonia","MK","eu"],[498,"Moldova","MD","eu"],
+  [804,"Ukraine","UA","eu"],[112,"Belarus","BY","eu"],[440,"Lithuania","LT","eu"],
+  [428,"Latvia","LV","eu"],[233,"Estonia","EE","eu"],[352,"Iceland","IS","eu"],
+  [826,"United Kingdom","GB","eu"],[860,"Kosovo","XK","eu"],
+  // MIDDLE EAST
+  [792,"Turkey","TR","me"],[760,"Syria","SY","me"],[422,"Lebanon","LB","me"],
+  [376,"Israel","IL","me"],[400,"Jordan","JO","me"],[275,"Palestine","PS","me"],
+  [368,"Iraq","IQ","me"],[364,"Iran","IR","me"],[682,"Saudi Arabia","SA","me"],
+  [887,"Yemen","YE","me"],[512,"Oman","OM","me"],[784,"UAE","AE","me"],
+  [634,"Qatar","QA","me"],[414,"Kuwait","KW","me"],[48,"Bahrain","BH","me"],
+  [31,"Azerbaijan","AZ","me"],[268,"Georgia","GE","me"],[51,"Armenia","AM","me"],
+  [887,"Yemen","YE","me"],[275,"Palestine","PS","me"],
+  // ASIA
+  [156,"China","CN","asia"],[392,"Japan","JP","asia"],[410,"South Korea","KR","asia"],
+  [408,"North Korea","KP","asia"],[496,"Mongolia","MN","asia"],[356,"India","IN","asia"],
+  [524,"Nepal","NP","asia"],[64,"Bhutan","BT","asia"],[50,"Bangladesh","BD","asia"],
+  [144,"Sri Lanka","LK","asia"],[586,"Pakistan","PK","asia"],[4,"Afghanistan","AF","asia"],
+  [860,"Uzbekistan","UZ","asia"],[795,"Turkmenistan","TM","asia"],[762,"Tajikistan","TJ","asia"],
+  [417,"Kyrgyzstan","KG","asia"],[398,"Kazakhstan","KZ","asia"],[104,"Myanmar","MM","asia"],
+  [764,"Thailand","TH","asia"],[116,"Cambodia","KH","asia"],[418,"Laos","LA","asia"],
+  [704,"Vietnam","VN","asia"],[458,"Malaysia","MY","asia"],[360,"Indonesia","ID","asia"],
+  [608,"Philippines","PH","asia"],[96,"Brunei","BN","asia"],[626,"Timor-Leste","TL","asia"],
+  // LATIN AMERICA
+  [484,"Mexico","MX","latam"],[320,"Guatemala","GT","latam"],[340,"Honduras","HN","latam"],
+  [222,"El Salvador","SV","latam"],[558,"Nicaragua","NI","latam"],[188,"Costa Rica","CR","latam"],
+  [591,"Panama","PA","latam"],[192,"Cuba","CU","latam"],[332,"Haiti","HT","latam"],
+  [214,"Dom. Republic","DO","latam"],[388,"Jamaica","JM","latam"],[76,"Brazil","BR","latam"],
+  [170,"Colombia","CO","latam"],[862,"Venezuela","VE","latam"],[328,"Guyana","GY","latam"],
+  [740,"Suriname","SR","latam"],[218,"Ecuador","EC","latam"],[604,"Peru","PE","latam"],
+  [68,"Bolivia","BO","latam"],[600,"Paraguay","PY","latam"],[858,"Uruguay","UY","latam"],
+  [32,"Argentina","AR","latam"],[152,"Chile","CL","latam"],[630,"Puerto Rico","PR","latam"],
+  [44,"Bahamas","BS","latam"],[780,"Trinidad & Tobago","TT","latam"],[84,"Belize","BZ","latam"],
+  // AFRICA
+  [12,"Algeria","DZ","africa"],[24,"Angola","AO","africa"],[72,"Botswana","BW","africa"],
+  [108,"Burundi","BI","africa"],[120,"Cameroon","CM","africa"],[132,"Cabo Verde","CV","africa"],
+  [140,"Central Afr. Rep.","CF","africa"],[148,"Chad","TD","africa"],[174,"Comoros","KM","africa"],
+  [178,"Congo","CG","africa"],[180,"DR Congo","CD","africa"],[204,"Benin","BJ","africa"],
+  [226,"Equatorial Guinea","GQ","africa"],[231,"Ethiopia","ET","africa"],[232,"Eritrea","ER","africa"],
+  [262,"Djibouti","DJ","africa"],[266,"Gabon","GA","africa"],[270,"Gambia","GM","africa"],
+  [288,"Ghana","GH","africa"],[324,"Guinea","GN","africa"],[404,"Kenya","KE","africa"],
+  [426,"Lesotho","LS","africa"],[430,"Liberia","LR","africa"],[434,"Libya","LY","africa"],
+  [450,"Madagascar","MG","africa"],[454,"Malawi","MW","africa"],[466,"Mali","ML","africa"],
+  [478,"Mauritania","MR","africa"],[504,"Morocco","MA","africa"],[508,"Mozambique","MZ","africa"],
+  [516,"Namibia","NA","africa"],[562,"Niger","NE","africa"],[566,"Nigeria","NG","africa"],
+  [624,"Guinea-Bissau","GW","africa"],[638,"Réunion","RE","africa"],[646,"Rwanda","RW","africa"],
+  [678,"São Tomé & Príncipe","ST","africa"],[686,"Senegal","SN","africa"],
+  [694,"Sierra Leone","SL","africa"],[706,"Somalia","SO","africa"],[710,"South Africa","ZA","africa"],
+  [716,"Zimbabwe","ZW","africa"],
+  [728,"South Sudan","SS","africa"],[729,"Sudan","SD","africa"],[748,"Eswatini","SZ","africa"],
+  [768,"Togo","TG","africa"],[788,"Tunisia","TN","africa"],[800,"Uganda","UG","africa"],
+  [818,"Egypt","EG","africa"],[834,"Tanzania","TZ","africa"],[854,"Burkina Faso","BF","africa"],
+  [894,"Zambia","ZM","africa"],
+];
+
+// Build lookup maps
+const countryById  = {};
+const countryByA2  = {};
+WORLD_COUNTRIES.forEach(([id, name, a2, region]) => {
+  if (!countryById[id]) countryById[id] = {id, name, alpha2: a2, region};
+  if (!countryByA2[a2]) countryByA2[a2] = {id, name, alpha2: a2, region};
+});
+
+// US States: [fipsId, name, abbr]
+const US_STATES = [
+  [1,"Alabama","AL"],[2,"Alaska","AK"],[4,"Arizona","AZ"],[5,"Arkansas","AR"],
+  [6,"California","CA"],[8,"Colorado","CO"],[9,"Connecticut","CT"],[10,"Delaware","DE"],
+  [12,"Florida","FL"],[13,"Georgia","GA"],[15,"Hawaii","HI"],[16,"Idaho","ID"],
+  [17,"Illinois","IL"],[18,"Indiana","IN"],[19,"Iowa","IA"],[20,"Kansas","KS"],
+  [21,"Kentucky","KY"],[22,"Louisiana","LA"],[23,"Maine","ME"],[24,"Maryland","MD"],
+  [25,"Massachusetts","MA"],[26,"Michigan","MI"],[27,"Minnesota","MN"],[28,"Mississippi","MS"],
+  [29,"Missouri","MO"],[30,"Montana","MT"],[31,"Nebraska","NE"],[32,"Nevada","NV"],
+  [33,"New Hampshire","NH"],[34,"New Jersey","NJ"],[35,"New Mexico","NM"],[36,"New York","NY"],
+  [37,"North Carolina","NC"],[38,"North Dakota","ND"],[39,"Ohio","OH"],[40,"Oklahoma","OK"],
+  [41,"Oregon","OR"],[42,"Pennsylvania","PA"],[44,"Rhode Island","RI"],[45,"South Carolina","SC"],
+  [46,"South Dakota","SD"],[47,"Tennessee","TN"],[48,"Texas","TX"],[49,"Utah","UT"],
+  [50,"Vermont","VT"],[51,"Virginia","VA"],[53,"Washington","WA"],[54,"West Virginia","WV"],
+  [55,"Wisconsin","WI"],[56,"Wyoming","WY"],
+];
+const stateById = {};
+US_STATES.forEach(([id, name, abbr]) => { stateById[id] = {id, name, abbr}; });
+
+// Region projections config
+const REGION_CONFIG = {
+  eu:     { label: "Europe",        center: [15, 52],   scale: 600 },
+  africa: { label: "Africa",        center: [20, 0],    scale: 380 },
+  me:     { label: "Middle East",   center: [45, 28],   scale: 650 },
+  asia:   { label: "Asia",          center: [100, 35],  scale: 280 },
+  latam:  { label: "Latin America", center: [-65, -10], scale: 330 },
+  us:     { label: "US States",     center: null,       scale: null },
+};
+
+// ═══════════════════════════════════════════════════════
+//  FLAG HELPERS
+// ═══════════════════════════════════════════════════════
+function renderFlag(container, item, isState) {
+  if (isState) {
+    // flagcdn.com supports US state subdivisions via us-{lowercase abbr}
+    const url = `https://flagcdn.com/w160/us-${item.abbr.toLowerCase()}.png`;
+    container.innerHTML = `<img class="state-flag" src="${url}" alt="${item.name}"
+      onerror="this.style.display='none';this.nextSibling.style.display='flex'"
+    /><div class="state-badge-fallback" style="display:none">${item.abbr}</div>`;
+  } else {
+    const code = item.alpha2.toLowerCase();
+    container.innerHTML = `<span class="fi fi-${code}"></span>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  INTRO UI
+// ═══════════════════════════════════════════════════════
+let selectedRegion = null;
+let selectedPlayerCount = 1;
+
+function selectRegion(btn) {
+  document.querySelectorAll('.region-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedRegion = btn.dataset.region;
+  checkStartReady();
+}
+
+function selectPlayerCount(btn) {
+  document.querySelectorAll('.player-count-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedPlayerCount = +btn.dataset.count;
+  renderNameInputs();
+}
+
+function renderNameInputs() {
+  const wrap = document.getElementById('player-names-wrap');
+  const defaults = ['Explorer','Navigator','Cartographer'];
+  wrap.innerHTML = '';
+  for (let i = 1; i <= selectedPlayerCount; i++) {
+    wrap.innerHTML += `
+      <div class="player-name-input">
+        <label>P${i} ›</label>
+        <input type="text" id="name-p${i}" placeholder="${defaults[i-1]}"
+          maxlength="16" value="${defaults[i-1]}" oninput="checkStartReady()">
+      </div>`;
+  }
+}
+
+function checkStartReady() {
+  document.getElementById('start-btn').disabled = !selectedRegion;
+}
+
+// ═══════════════════════════════════════════════════════
+//  GAME STATE
+// ═══════════════════════════════════════════════════════
+let G = {};
+let proMode = false;
+
+function startGame() {
+  const names = [];
+  for (let i = 1; i <= selectedPlayerCount; i++) {
+    const v = (document.getElementById(`name-p${i}`)?.value || '').trim();
+    names.push(v || `Player ${i}`);
+  }
+
+  G = {
+    region: selectedRegion,
+    isUS: selectedRegion === 'us',
+    players: names.map(name => ({ name, score: 0, lives: 3, eliminated: false })),
+    current: 0,
+    rounds: 0,
+    pool: [],
+    target: null,
+    locked: false,
+    zoom: null,
+    timerInterval: null,
+    timerSecs: 15,
+    topoWorld: null,
+    topoUS: null,
+  };
+
+  showScreen('game-screen');
+  document.getElementById('region-badge').textContent = REGION_CONFIG[selectedRegion].label.toUpperCase();
+  loadMapData();
+}
+
+// ═══════════════════════════════════════════════════════
+//  MAP LOADING & RENDERING
+// ═══════════════════════════════════════════════════════
+async function loadMapData() {
+  try {
+    if (G.isUS) {
+      if (!G.topoUS) {
+        const r = await fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json');
+        G.topoUS = await r.json();
+      }
+    } else {
+      if (!G.topoWorld) {
+        const r = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json');
+        G.topoWorld = await r.json();
+      }
+    }
+    renderMap();
+    buildPool();
+    renderPlayerPanels();
+    nextTurn();
+  } catch(e) {
+    console.error(e);
+    alert('Failed to load map data. Check your internet connection.');
+  }
+}
+
+function renderMap() {
+  const svg = d3.select('#map-svg');
+  svg.selectAll('*').remove();
+
+  const wrap = document.getElementById('map-wrap');
+  const W = wrap.clientWidth;
+  const H = wrap.clientHeight;
+
+  svg.attr('viewBox', `0 0 ${W} ${H}`);
+
+  // Create zoom group
+  const g = svg.append('g').attr('id', 'zoom-g');
+
+  // Setup D3 zoom
+  G.zoom = d3.zoom()
+    .scaleExtent([0.5, 20])
+    .on('zoom', (event) => {
+      g.attr('transform', event.transform);
+    });
+
+  svg.call(G.zoom);
+
+  // Disable double-click zoom (we use it for nothing special)
+  svg.on('dblclick.zoom', null);
+
+  G.mapW = W; G.mapH = H;
+
+  if (G.isUS) {
+    renderUSMap(svg, g, W, H);
+  } else {
+    renderWorldMap(svg, g, W, H);
+  }
+}
+
+function renderWorldMap(svg, g, W, H) {
+  const topo = G.topoWorld;
+  const countries = topojson.feature(topo, topo.objects.countries);
+
+  // Collect region features for fitting
+  const regionFeatures = countries.features.filter(f => {
+    const c = countryById[+f.id];
+    return c && c.region === G.region;
+  });
+
+  if (!regionFeatures.length) return;
+
+  const regionFC = { type: 'FeatureCollection', features: regionFeatures };
+
+  const proj = d3.geoMercator();
+  proj.fitExtent([[30, 30], [W - 30, H - 30]], regionFC);
+
+  const path = d3.geoPath().projection(proj);
+
+  // Draw all countries (dimmed outside region)
+  g.selectAll('.country')
+    .data(countries.features)
+    .join('path')
+    .attr('class', f => {
+      const c = countryById[+f.id];
+      return c && c.region === G.region ? 'country' : 'country region-out';
+    })
+    .attr('d', path)
+    .attr('data-id', f => f.id)
+    .on('click', function(event, f) {
+      const c = countryById[+f.id];
+      if (!c || c.region !== G.region) return;
+      handleClick(+f.id, this);
+    });
+}
+
+function renderUSMap(svg, g, W, H) {
+  const topo = G.topoUS;
+  const states = topojson.feature(topo, topo.objects.states);
+
+  const proj = d3.geoAlbersUsa().fitExtent([[30,30],[W-30,H-30]], states);
+  const path = d3.geoPath().projection(proj);
+
+  g.selectAll('.state')
+    .data(states.features)
+    .join('path')
+    .attr('class', 'state')
+    .attr('d', path)
+    .attr('data-id', f => f.id)
+    .on('click', function(event, f) {
+      handleClick(+f.id, this);
+    });
+}
+
+// Zoom control helpers
+function zoomIn()    { d3.select('#map-svg').transition().duration(300).call(G.zoom.scaleBy, 1.6); }
+function zoomOut()   { d3.select('#map-svg').transition().duration(300).call(G.zoom.scaleBy, 0.625); }
+function zoomReset() { d3.select('#map-svg').transition().duration(400).call(G.zoom.transform, d3.zoomIdentity); }
+
+// ═══════════════════════════════════════════════════════
+//  TIMER
+// ═══════════════════════════════════════════════════════
+let timerEnabled  = true;
+let timerDuration = 15;
+let readyCallback = null;
+const CIRCUMFERENCE = 2 * Math.PI * 22; // 138.23
+
+function onTimerToggle(enabled) {
+  timerEnabled = enabled;
+  document.getElementById('dur-options').classList.toggle('hidden', !enabled);
+}
+
+function selectDuration(btn) {
+  document.querySelectorAll('.dur-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  timerDuration = +btn.dataset.secs;
+}
+
+function showReadyDialog(playerName, callback) {
+  readyCallback = callback;
+  document.getElementById('ready-player-name').textContent = playerName;
+  document.getElementById('ready-overlay').classList.add('show');
+}
+
+function onReadyOk() {
+  document.getElementById('ready-overlay').classList.remove('show');
+  if (readyCallback) { readyCallback(); readyCallback = null; }
+}
+
+function startTimer() {
+  if (!timerEnabled) return;
+  stopTimer();
+  let remaining = timerDuration;
+  updateTimerUI(remaining);
+
+  G.timerInterval = setInterval(() => {
+    remaining--;
+    updateTimerUI(remaining);
+    if (remaining <= 0) {
+      stopTimer();
+      onTimerExpired();
+    }
+  }, 1000);
+}
+
+function stopTimer() {
+  if (G.timerInterval) { clearInterval(G.timerInterval); G.timerInterval = null; }
+}
+
+function updateTimerUI(secs) {
+  const arc    = document.getElementById('timer-arc');
+  const numEl  = document.getElementById('timer-number');
+  if (!arc || !numEl) return;
+
+  const frac   = secs / timerDuration;
+  const offset = CIRCUMFERENCE * (1 - frac);
+  arc.style.strokeDashoffset = offset;
+  numEl.textContent = secs;
+
+  const warn   = secs <= Math.max(Math.round(timerDuration * 0.4), 5) && secs > Math.max(Math.round(timerDuration * 0.2), 3);
+  const danger = secs <= Math.max(Math.round(timerDuration * 0.2), 3);
+  arc.className = `progress${danger ? ' danger' : warn ? ' warning' : ''}`;
+  numEl.className = danger ? 'danger' : warn ? 'warning' : '';
+}
+
+function onTimerExpired() {
+  if (G.locked) return;
+  G.locked = true;
+
+  const player = G.players[G.current];
+  player.lives--;
+  if (player.lives <= 0) player.eliminated = true;
+
+  showFeedback('Time!', 'wrong');
+  const correctEl = document.querySelector(`[data-id="${G.target}"]`);
+  if (correctEl) flashEl(correctEl, 'correct-flash', 1800);
+  showAnswerLabel(G.target);
+  renderPlayerPanels();
+
+  setTimeout(() => {
+    clearFeedback();
+    clearAnswerLabel();
+    if (correctEl) correctEl.classList.remove('correct-flash');
+    advanceTurn();
+  }, 1800);
+}
+
+// ═══════════════════════════════════════════════════════
+//  POOL & TURNS
+// ═══════════════════════════════════════════════════════
+function buildPool() {
+  if (G.isUS) {
+    G.pool = US_STATES.map(([id]) => id).sort(() => Math.random() - .5);
+  } else {
+    G.pool = WORLD_COUNTRIES
+      .filter(([,, , region]) => region === G.region)
+      .map(([id]) => id)
+      .filter((v, i, a) => a.indexOf(v) === i) // dedupe
+      .sort(() => Math.random() - .5);
+  }
+}
+
+function nextTurn() {
+  if (G.pool.length === 0) { goToResults(); return; }
+
+  const activePlayers = G.players.filter(p => !p.eliminated);
+  if (activePlayers.length === 0) { goToResults(); return; }
+
+  // Advance to next non-eliminated player
+  while (G.players[G.current].eliminated) {
+    G.current = (G.current + 1) % G.players.length;
+  }
+
+  G.target = G.pool.pop();
+  G.rounds++;
+  G.locked = false;
+
+  updateRoundCounter();
+  updateTurnDisplay();
+
+  // Show flag + name
+  const flagDisp = document.getElementById('flag-display');
+  const nameEl   = document.getElementById('country-name');
+  if (G.isUS) {
+    const st = stateById[G.target];
+    if (st) {
+      renderFlag(flagDisp, st, true);
+      nameEl.textContent = st.name;
+      nameEl.style.visibility = proMode ? 'hidden' : 'visible';
+    }
+  } else {
+    const co = countryById[G.target];
+    if (co) {
+      renderFlag(flagDisp, co, false);
+      nameEl.textContent = co.name;
+      nameEl.style.visibility = proMode ? 'hidden' : 'visible';
+    } else {
+      nextTurn(); return;
+    }
+  }
+
+  // Timer UI
+  const tw = document.getElementById('timer-wrap');
+  if (tw) tw.style.display = timerEnabled ? 'flex' : 'none';
+  if (timerEnabled) {
+    updateTimerUI(timerDuration);
+    startTimer();
+  }
+}
+
+function updateRoundCounter() {
+  document.getElementById('round-counter').textContent =
+    `Round ${G.rounds}  ·  ${G.pool.length} left`;
+}
+
+function updateTurnDisplay() {
+  const p = G.players[G.current];
+  document.getElementById('turn-name').textContent = p.name;
+  renderPlayerPanels();
+}
+
+function renderPlayerPanels() {
+  const wrap = document.getElementById('players-panel');
+  wrap.innerHTML = '';
+  G.players.forEach((p, i) => {
+    const hearts = [0,1,2].map(h =>
+      `<span class="heart ${h >= p.lives ? 'lost' : ''}">❤</span>`
+    ).join('');
+    wrap.innerHTML += `
+      <div class="player-panel ${i === G.current && !p.eliminated ? 'active-player' : ''} ${p.eliminated ? 'eliminated' : ''}">
+        <div class="p-name">${p.name}<span class="score">${p.score} pts</span></div>
+        <div class="p-lives">${hearts}</div>
+      </div>`;
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  CLICK HANDLING
+// ═══════════════════════════════════════════════════════
+function handleClick(id, el) {
+  if (G.locked) return;
+  G.locked = true;
+  stopTimer();
+
+  const correct = id === G.target;
+  const player  = G.players[G.current];
+
+  if (correct) {
+    player.score++;
+    showFeedback('Correct!', 'correct');
+    flashEl(el, 'correct-flash');
+    showAnswerLabel(id);
+    setTimeout(() => {
+      clearFeedback();
+      clearAnswerLabel();
+      advanceTurn();
+    }, 1400);
+  } else {
+    player.lives--;
+    showFeedback('Wrong!', 'wrong');
+    flashEl(el, 'wrong-flash');
+
+    // Highlight correct
+    const correctEl = document.querySelector(`[data-id="${G.target}"]`);
+    if (correctEl) {
+      flashEl(correctEl, 'correct-flash', 1800);
+    }
+    showAnswerLabel(G.target);
+
+    if (player.lives <= 0) {
+      player.eliminated = true;
+    }
+
+    setTimeout(() => {
+      clearFeedback();
+      clearAnswerLabel();
+      if (correctEl) correctEl.classList.remove('correct-flash');
+      advanceTurn();
+    }, 1800);
+  }
+
+  renderPlayerPanels();
+}
+
+function advanceTurn() {
+  const activePlayers = G.players.filter(p => !p.eliminated);
+  if (activePlayers.length === 0) { goToResults(); return; }
+  G.current = (G.current + 1) % G.players.length;
+  // Skip eliminated players
+  while (G.players[G.current].eliminated) {
+    G.current = (G.current + 1) % G.players.length;
+  }
+  // Show "get ready" dialog for multiplayer with short timer
+  const needsReady = G.players.length > 1 && timerEnabled && timerDuration <= 15;
+  if (needsReady) {
+    const name = G.players[G.current].name;
+    showReadyDialog(name, () => nextTurn());
+  } else {
+    nextTurn();
+  }
+}
+
+function flashEl(el, cls, dur = 1200) {
+  el.classList.add(cls);
+  setTimeout(() => el.classList.remove(cls), dur);
+}
+
+function showFeedback(msg, type) {
+  const el = document.getElementById('feedback-msg');
+  el.textContent = msg;
+  el.className = `show ${type}`;
+}
+function clearFeedback() {
+  document.getElementById('feedback-msg').className = '';
+}
+
+function showAnswerLabel(id) {
+  let name = '';
+  if (G.isUS) {
+    name = stateById[id]?.name || '';
+  } else {
+    name = countryById[id]?.name || '';
+  }
+  if (!name) return;
+  const el = document.getElementById('answer-label');
+  el.textContent = name;
+  el.classList.add('show');
+}
+function clearAnswerLabel() {
+  document.getElementById('answer-label').classList.remove('show');
+}
+
+// ═══════════════════════════════════════════════════════
+//  SCREEN NAVIGATION
+// ═══════════════════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function goToResults() {
+  stopTimer();
+  const sorted = [...G.players].sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return b.lives - a.lives;
+  });
+
+  const list = document.getElementById('results-list');
+  list.innerHTML = sorted.map((p, i) => `
+    <div class="result-row ${i === 0 ? 'winner' : ''}">
+      <div class="result-rank">${['🥇','🥈','🥉',''][i] || (i+1)+'.'}</div>
+      <div class="result-name">${p.name}</div>
+      <div class="result-lives">${[0,1,2].map(h => `<span style="font-size:.8rem;${h>=p.lives?'filter:grayscale(1)opacity(.3)':''}">❤</span>`).join('')}</div>
+      <div class="result-score">${p.score} pts</div>
+    </div>`
+  ).join('');
+
+  showScreen('results-screen');
+}
+
+function goToIntro() {
+  showScreen('intro-screen');
+  G = {};
+  selectedRegion = null;
+  document.querySelectorAll('.region-btn').forEach(b => b.classList.remove('selected'));
+  checkStartReady();
+}
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+window.addEventListener('resize', () => {
+  if (document.getElementById('game-screen').classList.contains('active') && G.region) {
+    renderMap();
+  }
+});
+
+// Init player count = 1
+renderNameInputs();
+</script>
+
+<!-- ═══════════════ GET READY DIALOG ═══════════════ -->
+<div id="ready-overlay">
+  <div id="ready-dialog">
+    <div id="ready-player-name">Explorer</div>
+    <div id="ready-subtitle">get ready!</div>
+    <button id="ready-ok" onclick="onReadyOk()">I'm Ready →</button>
+  </div>
+</div>
+
+</body>
+</html>
